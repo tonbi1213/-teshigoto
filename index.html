@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>てしごとノート</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #F5F1EC;
+      --surface: #FFFFFF;
+      --surface-2: #FAF7F4;
+      --dark: #1A1714;
+      --primary: #8B5E3C;
+      --primary-mid: #B8866A;
+      --primary-light: #EEE5DC;
+      --muted: #9B8B7A;
+      --border: #E2D8CC;
+      --border-light: #EDE7DF;
+      --text: #1A1714;
+      --text-mid: #6B5748;
+      --text-light: #A89480;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, 'Hiragino Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding-bottom: 68px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-light);
+      padding: 20px 20px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .app-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--dark);
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+    .app-subtitle {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--text-light);
+      margin-top: 3px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: #FFFFFF;
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+      display: flex; z-index: 200;
+    }
+    .nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 11px 0 13px; cursor: pointer;
+      border: none; background: none; color: var(--text-light);
+      font-family: inherit; transition: color 0.2s;
+      position: relative;
+    }
+    .nav-btn.active { color: var(--dark); }
+    .nav-btn.active::after {
+      content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 20px; height: 2px; background: var(--dark); border-radius: 1px;
+    }
+    .nav-icon { font-size: 20px; line-height: 1; }
+    .nav-label { font-size: 9px; margin-top: 4px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* ── Pages ── */
+    .page { display: none; animation: fadeIn 0.22s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Section header ── */
+    .section-header { padding: 20px 20px 0; }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--dark);
+      letter-spacing: 0.01em;
+    }
+    .section-subtitle { font-size: 11px; color: var(--text-light); margin-top: 2px; letter-spacing: 0.04em; }
+
+    /* ── Month Selector ── */
+    .month-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 20px 0;
+    }
+    .month-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px; font-weight: 600; color: var(--dark); letter-spacing: 0.01em;
+    }
+    .month-navs { display: flex; gap: 4px; }
+    .month-nav {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 15px; color: var(--text-mid);
+      transition: background 0.15s;
+    }
+    .month-nav:active { background: var(--primary-light); }
+
+    /* ── Sub Tabs ── */
+    .sub-tabs {
+      display: flex; margin: 16px 20px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .sub-tab {
+      padding: 10px 0; margin-right: 24px;
+      font-size: 12px; font-weight: 500; color: var(--text-light);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; border: none; background: none;
+      font-family: inherit;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+    .sub-tab.active { color: var(--dark); border-bottom-color: var(--dark); }
+
+    /* ── Stats ── */
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px 20px 0; }
+    .stat-box {
+      background: var(--surface); border: 1px solid var(--border-light);
+      border-radius: 14px; padding: 16px;
+    }
+    .stat-box-label { font-size: 10px; font-weight: 500; color: var(--text-light); letter-spacing: 0.1em; text-transform: uppercase; }
+    .stat-box-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px; font-weight: 600; color: var(--dark); margin-top: 4px; line-height: 1;
+    }
+    .stat-box-unit { font-size: 13px; font-family: 'Inter', sans-serif; font-weight: 400; }
+
+    /* ── Entry List ── */
+    .entry-list-wrap { padding: 16px 20px 0; }
+    .entry-item {
+      display: flex; align-items: center;
+      padding: 14px 0; border-bottom: 1px solid var(--border-light);
+    }
+    .entry-item:last-child { border-bottom: none; }
+    .entry-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-right: 14px;
+    }
+    .entry-dot.purchase { background: var(--primary-mid); }
+    .entry-dot.consumption { background: var(--text-light); }
+    .entry-type {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-light); width: 28px; flex-shrink: 0; margin-right: 12px;
+    }
+    .entry-info { flex: 1; min-width: 0; }
+    .entry-name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .entry-note { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+    .entry-amount { font-size: 15px; font-weight: 600; color: var(--text); margin-right: 8px; white-space: nowrap; }
+    .icon-btn {
+      width: 30px; height: 30px; border: none; background: none;
+      cursor: pointer; font-size: 13px; color: var(--text-light);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      opacity: 0.7;
+    }
+    .icon-btn:active { background: var(--primary-light); opacity: 1; }
+
+    /* ── Stock ── */
+    .stock-item { display: flex; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border-light); }
+    .stock-item:last-child { border-bottom: none; }
+    .stock-name { font-size: 13px; font-weight: 500; min-width: 72px; max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .stock-mid { flex: 1; margin: 0 16px; }
+    .stock-bar-bg { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 5px; }
+    .stock-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; background: var(--primary-mid); }
+    .stock-bar-fill.low { background: #C4846A; }
+    .stock-sub { font-size: 10px; color: var(--text-light); letter-spacing: 0.04em; }
+    .stock-right { text-align: right; }
+    .stock-remaining { font-size: 16px; font-weight: 600; color: var(--dark); }
+    .stock-unit { font-size: 10px; font-weight: 400; }
+
+    /* ── Chart ── */
+    .chart-wrap { position: relative; height: 230px; padding: 8px 0; }
+    .chart-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; justify-content: center; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-mid); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .chart-toggle { display: flex; gap: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+    .chart-toggle-btn {
+      flex: 1; padding: 9px; border: none;
+      font-size: 12px; font-weight: 500; color: var(--text-light);
+      cursor: pointer; font-family: inherit; letter-spacing: 0.06em; text-transform: uppercase;
+      background: transparent; transition: all 0.2s;
+    }
+    .chart-toggle-btn.active { background: var(--dark); color: #fff; }
+
+    /* ── Product Grid (Instagram style) ── */
+    .product-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; }
+    .product-grid.two-col { grid-template-columns: 1fr 1fr; gap: 2px; }
+
+    .product-card {
+      aspect-ratio: 1; background: var(--primary-light);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; overflow: hidden; position: relative;
+      transition: opacity 0.15s;
+    }
+    .product-card:active { opacity: 0.85; }
+    .product-thumb-img { width: 100%; height: 100%; object-fit: cover; }
+    .product-thumb-placeholder { font-size: 32px; }
+    .product-card-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(20,14,10,0.65) 0%, transparent 55%);
+      opacity: 0; transition: opacity 0.2s;
+      display: flex; align-items: flex-end; padding: 10px;
+    }
+    .product-card:active .product-card-overlay { opacity: 1; }
+    .product-card-title { font-size: 11px; font-weight: 500; color: #fff; line-height: 1.3; }
+
+    /* Product list below grid for info */
+    .product-info-row {
+      background: var(--surface);
+      padding: 10px 16px 12px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+    }
+    .product-info-title { font-size: 13px; font-weight: 500; }
+    .product-info-meta { font-size: 10px; color: var(--text-light); margin-top: 2px; letter-spacing: 0.04em; }
+    .product-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .tag {
+      font-size: 10px; font-weight: 500; letter-spacing: 0.04em;
+      color: var(--text-mid); padding: 2px 8px;
+      border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;
+    }
+
+    /* ── Search ── */
+    .search-wrap { padding: 16px 20px 0; position: relative; }
+    .search-input {
+      width: 100%; padding: 11px 14px 11px 38px;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: var(--surface); font-size: 13px; color: var(--text);
+      outline: none; font-family: inherit; letter-spacing: 0.02em;
+    }
+    .search-input:focus { border-color: var(--primary-mid); }
+    .search-input::placeholder { color: var(--text-light); }
+    .search-icon { position: absolute; left: 34px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--text-light); margin-top: 8px; }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed; bottom: 82px;
+      right: max(20px, calc(50% - 220px));
+      width: 50px; height: 50px; border-radius: 50%;
+      background: var(--dark); color: #fff;
+      border: none; font-size: 22px; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(26,23,20,0.28);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 50; transition: transform 0.15s, box-shadow 0.15s;
+      font-weight: 300;
+    }
+    .fab:active { transform: scale(0.92); box-shadow: 0 2px 12px rgba(26,23,20,0.22); }
+
+    /* ── Modal ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 200; display: none; align-items: flex-end; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .sheet {
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      padding: 0 24px 48px; width: 100%; max-width: 480px;
+      max-height: 92vh; overflow-y: auto;
+      animation: sheetUp 0.3s cubic-bezier(.32,.72,0,1);
+    }
+    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .sheet-handle {
+      width: 32px; height: 3px; background: var(--border);
+      border-radius: 2px; margin: 14px auto 22px;
+    }
+    .sheet-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px; font-weight: 600; margin-bottom: 24px; color: var(--dark);
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 20px; }
+    .form-label {
+      font-size: 10px; font-weight: 600; color: var(--text-light);
+      margin-bottom: 8px; display: block; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .form-input {
+      width: 100%; padding: 12px 14px;
+      border: 1px solid var(--border); border-radius: 10px;
+      font-size: 15px; color: var(--text); background: var(--surface-2);
+      outline: none; font-family: inherit; transition: border-color 0.2s, background 0.2s;
+    }
+    .form-input:focus { border-color: var(--primary-mid); background: var(--surface); }
+    textarea.form-input { resize: none; min-height: 80px; line-height: 1.6; }
+    .form-row { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+
+    /* Type toggle */
+    .type-toggle { display: flex; gap: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+    .type-btn {
+      flex: 1; padding: 12px; border: none;
+      font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-light);
+      font-family: inherit; letter-spacing: 0.04em; background: transparent; transition: all 0.2s;
+    }
+    .type-btn.active { background: var(--dark); color: #fff; }
+
+    /* Tag input */
+    .tags-wrap {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 10px; background: var(--surface-2); min-height: 46px; cursor: text;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .tags-wrap:focus-within { border-color: var(--primary-mid); background: var(--surface); }
+    .tag-chip {
+      font-size: 11px; font-weight: 500; color: var(--text-mid);
+      border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px;
+      display: flex; align-items: center; gap: 5px; letter-spacing: 0.04em;
+    }
+    .tag-chip-x { cursor: pointer; font-size: 14px; line-height: 1; color: var(--text-light); }
+    .tag-field { border: none; outline: none; background: transparent; font-size: 14px; color: var(--text); min-width: 80px; flex: 1; font-family: inherit; }
+
+    /* Materials used in product */
+    .mat-used-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .mat-used-row .form-input { flex: 2; padding: 10px 12px; font-size: 14px; }
+    .mat-used-row .form-input.sm { flex: 1; }
+    .btn-rm {
+      width: 32px; height: 32px; border: 1px solid var(--border);
+      background: var(--surface-2); color: var(--text-light); border-radius: 8px;
+      cursor: pointer; font-size: 16px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .btn-add-mat {
+      width: 100%; padding: 11px; border: 1px dashed var(--border);
+      border-radius: 10px; background: none; color: var(--text-light);
+      font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit;
+      letter-spacing: 0.06em;
+    }
+
+    /* Photo upload */
+    .photo-area {
+      width: 100%; aspect-ratio: 4/3; border: 1px dashed var(--border);
+      border-radius: 14px; background: var(--surface-2); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      overflow: hidden; position: relative; margin-bottom: 20px; transition: border-color 0.2s;
+    }
+    .photo-area:active { border-color: var(--primary-mid); }
+    .photo-area img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .photo-hint { font-size: 12px; color: var(--text-light); text-align: center; letter-spacing: 0.04em; }
+    .photo-icon { font-size: 28px; margin-bottom: 10px; opacity: 0.6; }
+    .photo-area.has-photo .photo-hint { display: none; }
+
+    /* Suggestions */
+    .sugg-label { font-size: 10px; color: var(--text-light); margin: 8px 0 6px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .suggestion-chip {
+      font-size: 12px; color: var(--text-mid); padding: 5px 12px;
+      border: 1px solid var(--border); border-radius: 20px; cursor: pointer;
+      border: none; font-family: inherit; background: var(--surface-2);
+      transition: background 0.15s;
+    }
+    .suggestion-chip:active { background: var(--primary-light); }
+
+    /* Buttons */
+    .btn-primary {
+      width: 100%; padding: 15px; background: var(--dark); color: #fff;
+      border: none; border-radius: 12px; font-size: 14px; font-weight: 500;
+      cursor: pointer; margin-top: 8px; font-family: inherit;
+      letter-spacing: 0.06em; transition: opacity 0.2s;
+    }
+    .btn-primary:active { opacity: 0.85; }
+    .btn-ghost {
+      width: 100%; padding: 14px; background: none; color: var(--text-mid);
+      border: 1px solid var(--border); border-radius: 12px; font-size: 14px;
+      font-weight: 500; cursor: pointer; margin-top: 8px; font-family: inherit;
+    }
+    .btn-danger {
+      width: 100%; padding: 14px; background: none; color: #B05050;
+      border: 1px solid #D4A0A0; border-radius: 12px; font-size: 13px;
+      cursor: pointer; margin-top: 8px; font-family: inherit; letter-spacing: 0.04em;
+    }
+
+    /* Product Detail */
+    .detail-photo {
+      width: 100%; aspect-ratio: 4/3; border-radius: 14px;
+      object-fit: cover; background: var(--primary-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 60px; overflow: hidden; margin-bottom: 20px;
+    }
+    .detail-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 14px; }
+    .detail-row { margin-bottom: 16px; }
+    .detail-label { font-size: 10px; font-weight: 600; color: var(--text-light); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+    .detail-value { font-size: 14px; color: var(--text); line-height: 1.7; }
+    .mat-chip {
+      display: inline-block; font-size: 12px;
+      color: var(--text-mid); padding: 4px 12px;
+      border: 1px solid var(--border); border-radius: 20px;
+      margin: 3px 3px 0 0; letter-spacing: 0.03em;
+    }
+    .detail-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px; font-weight: 600; margin-bottom: 4px; line-height: 1.2;
+    }
+    .detail-date { font-size: 11px; color: var(--text-light); letter-spacing: 0.06em; margin-bottom: 18px; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 56px 20px; color: var(--text-light); }
+    .empty-icon { font-size: 44px; margin-bottom: 14px; opacity: 0.5; }
+    .empty-text { font-size: 13px; line-height: 1.8; letter-spacing: 0.04em; }
+
+    /* Content padding */
+    .content-pad { padding: 16px 20px; }
+    .content-pad-top { padding-top: 16px; }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">Teshigoto</div>
+  <div class="app-subtitle">手芸の記録</div>
+</header>
+
+<!-- ── Materials Page ── -->
+<div id="page-materials" class="page active">
+
+  <div class="month-row">
+    <div class="month-label" id="monthLabel"></div>
+    <div class="month-navs">
+      <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+      <button class="month-nav" onclick="changeMonth(1)">›</button>
+    </div>
+  </div>
+
+  <div class="sub-tabs">
+    <button class="sub-tab active" id="tab-records" onclick="switchSubTab('records')">記録</button>
+    <button class="sub-tab" id="tab-chart" onclick="switchSubTab('chart')">グラフ</button>
+    <button class="sub-tab" id="tab-stock" onclick="switchSubTab('stock')">在庫</button>
+  </div>
+
+  <!-- Records -->
+  <div id="subtab-records">
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-box-label">仕入れ</div>
+        <div class="stat-box-value" id="stat-purchased">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-label">消費</div>
+        <div class="stat-box-value" id="stat-consumed">—</div>
+      </div>
+    </div>
+    <div class="entry-list-wrap" id="entry-list"></div>
+  </div>
+
+  <!-- Chart -->
+  <div id="subtab-chart" style="display:none">
+    <div class="content-pad content-pad-top">
+      <div class="chart-toggle">
+        <button class="chart-toggle-btn active" id="ctoggle-purchase" onclick="switchChartType('purchase')">仕入れ</button>
+        <button class="chart-toggle-btn" id="ctoggle-consumption" onclick="switchChartType('consumption')">消費</button>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="pieChart"></canvas>
+      </div>
+      <div class="chart-legend" id="chartLegend"></div>
+    </div>
+  </div>
+
+  <!-- Stock -->
+  <div id="subtab-stock" style="display:none">
+    <div class="entry-list-wrap" id="stock-list"></div>
+  </div>
+</div>
+
+<!-- ── Products Page ── -->
+<div id="page-products" class="page">
+  <div class="search-wrap">
+    <span class="search-icon">○</span>
+    <input class="search-input" id="searchInput" type="text" placeholder="タイトル・タグで検索" oninput="renderProducts()">
+  </div>
+  <div style="padding-top:14px" id="product-area"></div>
+</div>
+
+<!-- ── FAB ── -->
+<button class="fab" id="fabBtn" onclick="openAddModal()">+</button>
+
+<!-- ── Bottom Nav ── */
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-materials" onclick="switchPage('materials')">
+    <span class="nav-icon">🧵</span>
+    <span class="nav-label">材料</span>
+  </button>
+  <button class="nav-btn" id="nav-products" onclick="switchPage('products')">
+    <span class="nav-icon">✨</span>
+    <span class="nav-label">完成品</span>
+  </button>
+</nav>
+
+<!-- ── Add Entry Modal ── -->
+<div class="overlay" id="overlay-entry" onclick="closeOnOverlay(event,'overlay-entry')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="entry-modal-title">材料を記録する</div>
+
+    <div class="type-toggle">
+      <button class="type-btn active" id="type-purchase" onclick="setEntryType('purchase')">仕入れ</button>
+      <button class="type-btn" id="type-consumption" onclick="setEntryType('consumption')">消費</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">素材名</label>
+      <input class="form-input" id="entry-name" type="text" placeholder="例：白羊毛、フェルトニードル">
+      <div class="sugg-label" id="sugg-label" style="display:none">最近使った素材</div>
+      <div class="suggestions" id="entry-suggestions"></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">数量</label>
+        <input class="form-input" id="entry-amount" type="number" min="0" step="any" placeholder="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">単位</label>
+        <input class="form-input" id="entry-unit" type="text" placeholder="g">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">メモ（任意）</label>
+      <input class="form-input" id="entry-note" type="text" placeholder="例：◯◯ショップで購入">
+    </div>
+
+    <input type="hidden" id="entry-editing-id">
+    <button class="btn-primary" onclick="saveEntry()">保存する</button>
+    <button class="btn-ghost" onclick="closeModal('overlay-entry')">キャンセル</button>
+  </div>
+</div>
+
+<!-- ── Add Product Modal ── -->
+<div class="overlay" id="overlay-product" onclick="closeOnOverlay(event,'overlay-product')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="product-modal-title">作品を記録する</div>
+
+    <div class="form-group">
+      <label class="form-label">写真</label>
+      <div class="photo-area" id="product-photo-area" onclick="document.getElementById('photo-file').click()">
+        <div class="photo-icon">📷</div>
+        <div class="photo-hint">タップして写真を追加<br><span style="font-size:10px;letter-spacing:0.06em">CAMERA / ALBUM</span></div>
+      </div>
+      <input type="file" id="photo-file" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">タイトル</label>
+      <input class="form-input" id="product-title" type="text" placeholder="例：白猫ブローチ">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">タグ（スペースまたはEnterで追加）</label>
+      <div class="tags-wrap" id="tags-wrap" onclick="document.getElementById('tag-field').focus()">
+        <input class="tag-field" id="tag-field" type="text" placeholder="例：ブローチ" onkeydown="handleTagKey(event)" oninput="handleTagInput(event)">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">使った材料</label>
+      <div id="mat-used-list"></div>
+      <button class="btn-add-mat" onclick="addMatUsedRow()">+ 材料を追加</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">メモ（任意）</label>
+      <textarea class="form-input" id="product-note" placeholder="制作メモ、難しかった点など…"></textarea>
+    </div>
+
+    <input type="hidden" id="product-editing-id">
+    <button class="btn-primary" onclick="saveProduct()">保存する</button>
+    <button class="btn-ghost" onclick="closeModal('overlay-product')">キャンセル</button>
+  </div>
+</div>
+
+<!-- ── Product Detail Modal ── -->
+<div class="overlay" id="overlay-detail" onclick="closeOnOverlay(event,'overlay-detail')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// DB
+// ═══════════════════════════════════════
+function db() {
+  try { return JSON.parse(localStorage.getItem('teshigoto') || '{"entries":[],"products":[]}'); }
+  catch { return { entries: [], products: [] }; }
+}
+function saveDb(d) { localStorage.setItem('teshigoto', JSON.stringify(d)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let currentPage = 'materials';
+let currentYM = todayYM();
+let currentSubTab = 'records';
+let currentChartType = 'purchase';
+let entryType = 'purchase';
+let productTags = [];
+let productPhoto = null;
+let pieChart = null;
+
+function todayYM() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function fmtYM(ym) {
+  const [y,m] = ym.split('-');
+  return `${y} / ${String(m).padStart(2,'0')}`;
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════
+// PAGE SWITCHING
+// ═══════════════════════════════════════
+function switchPage(p) {
+  currentPage = p;
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav-'+p).classList.add('active');
+  if (p === 'materials') renderMaterials();
+  if (p === 'products') renderProducts();
+}
+
+// ═══════════════════════════════════════
+// MONTH NAV
+// ═══════════════════════════════════════
+function changeMonth(dir) {
+  const [y,m] = currentYM.split('-').map(Number);
+  const d = new Date(y, m-1+dir, 1);
+  currentYM = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  renderMaterials();
+}
+
+// ═══════════════════════════════════════
+// SUB TABS
+// ═══════════════════════════════════════
+function switchSubTab(tab) {
+  currentSubTab = tab;
+  ['records','chart','stock'].forEach(t => {
+    document.getElementById('subtab-'+t).style.display = t===tab ? '' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+  if (tab === 'chart') renderChart();
+  if (tab === 'stock') renderStock();
+}
+
+function switchChartType(type) {
+  currentChartType = type;
+  document.getElementById('ctoggle-purchase').classList.toggle('active', type==='purchase');
+  document.getElementById('ctoggle-consumption').classList.toggle('active', type==='consumption');
+  renderChart();
+}
+
+// ═══════════════════════════════════════
+// RENDER MATERIALS
+// ═══════════════════════════════════════
+function renderMaterials() {
+  document.getElementById('monthLabel').textContent = fmtYM(currentYM);
+  const data = db();
+  const monthEntries = data.entries.filter(e => e.yearMonth === currentYM);
+  const purchased = monthEntries.filter(e => e.type === 'purchase');
+  const consumed = monthEntries.filter(e => e.type === 'consumption');
+
+  const pByUnit = aggregateByUnit(purchased);
+  const cByUnit = aggregateByUnit(consumed);
+  document.getElementById('stat-purchased').innerHTML = formatStatVal(pByUnit);
+  document.getElementById('stat-consumed').innerHTML = formatStatVal(cByUnit);
+
+  const list = document.getElementById('entry-list');
+  if (monthEntries.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><div class="empty-text">この月の記録はまだありません<br>＋ から追加してみましょう</div></div>`;
+  } else {
+    list.innerHTML = monthEntries.slice().reverse().map(e => `
+      <div class="entry-item">
+        <div class="entry-dot ${e.type}"></div>
+        <div class="entry-type">${e.type==='purchase'?'IN':'OUT'}</div>
+        <div class="entry-info">
+          <div class="entry-name">${esc(e.name)}</div>
+          ${e.note ? `<div class="entry-note">${esc(e.note)}</div>` : ''}
+        </div>
+        <span class="entry-amount">${e.amount}<small style="font-size:11px;font-weight:400"> ${esc(e.unit)}</small></span>
+        <button class="icon-btn" onclick="editEntry('${e.id}')">✎</button>
+        <button class="icon-btn" onclick="deleteEntry('${e.id}')">✕</button>
+      </div>
+    `).join('');
+  }
+
+  if (currentSubTab === 'chart') renderChart();
+  if (currentSubTab === 'stock') renderStock();
+}
+
+function aggregateByUnit(entries) {
+  const r = {};
+  entries.forEach(e => { const k = e.unit||''; r[k] = (r[k]||0) + Number(e.amount); });
+  return r;
+}
+
+function formatStatVal(byUnit) {
+  const keys = Object.keys(byUnit);
+  if (!keys.length) return '<span style="font-size:18px;color:var(--text-light);font-family:Inter,sans-serif">—</span>';
+  return keys.map(k => `${byUnit[k]}<span class="stat-box-unit"> ${k}</span>`).join('<br>');
+}
+
+// ═══════════════════════════════════════
+// RENDER CHART
+// ═══════════════════════════════════════
+const PIE_COLORS = [
+  '#8B5E3C','#C4916B','#B8A48E','#D4C0B0','#7A8B7A',
+  '#9BAAB0','#B0A07A','#8B7A8B','#7A8BA0','#A09870'
+];
+
+function renderChart() {
+  const data = db();
+  const entries = data.entries.filter(e => e.yearMonth === currentYM && e.type === currentChartType);
+  const grouped = {};
+  entries.forEach(e => { grouped[e.name] = (grouped[e.name]||0) + Number(e.amount); });
+  const labels = Object.keys(grouped);
+  const values = Object.values(grouped);
+  const legendEl = document.getElementById('chartLegend');
+  const canvas = document.getElementById('pieChart');
+
+  if (!labels.length) {
+    if (pieChart) { pieChart.destroy(); pieChart = null; }
+    canvas.style.display = 'none';
+    legendEl.innerHTML = `<div style="color:var(--text-light);font-size:12px;text-align:center;padding:30px 0;letter-spacing:0.06em">データがありません</div>`;
+    return;
+  }
+
+  canvas.style.display = '';
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: PIE_COLORS.slice(0, labels.length),
+        borderWidth: 3, borderColor: '#fff', hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true, cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+              const pct = Math.round(ctx.parsed/total*100);
+              const unit = entries.find(e=>e.name===ctx.label)?.unit||'';
+              return ` ${ctx.parsed}${unit}（${pct}%）`;
+            }
+          },
+          bodyFont: { family: 'Inter' },
+          padding: 10, cornerRadius: 8,
+        }
+      }
+    }
+  });
+
+  legendEl.innerHTML = labels.map((l,i) => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${PIE_COLORS[i]}"></div>
+      <span>${esc(l)}</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════
+// RENDER STOCK
+// ═══════════════════════════════════════
+function renderStock() {
+  const data = db();
+  const byMat = {};
+  data.entries.forEach(e => {
+    if (!byMat[e.name]) byMat[e.name] = { p: 0, c: 0, unit: e.unit||'' };
+    if (e.type==='purchase') byMat[e.name].p += Number(e.amount);
+    else byMat[e.name].c += Number(e.amount);
+  });
+
+  const list = document.getElementById('stock-list');
+  const mats = Object.entries(byMat);
+  if (!mats.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><div class="empty-text">まだデータがありません</div></div>`;
+    return;
+  }
+
+  list.innerHTML = mats.map(([name, v]) => {
+    const rem = Math.max(0, v.p - v.c);
+    const pct = v.p > 0 ? Math.min(100, Math.round(rem/v.p*100)) : 0;
+    const low = pct < 25;
+    return `
+      <div class="stock-item">
+        <div class="stock-name" title="${esc(name)}">${esc(name)}</div>
+        <div class="stock-mid">
+          <div class="stock-bar-bg">
+            <div class="stock-bar-fill${low?' low':''}" style="width:${pct}%"></div>
+          </div>
+          <div class="stock-sub">仕入 ${v.p}${esc(v.unit)} / 消費 ${v.c}${esc(v.unit)}</div>
+        </div>
+        <div class="stock-right">
+          <div class="stock-remaining">${rem}<span class="stock-unit">${esc(v.unit)}</span></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+// ENTRY CRUD
+// ═══════════════════════════════════════
+function openAddModal() {
+  if (currentPage === 'products') { openAddProductModal(); return; }
+  document.getElementById('entry-modal-title').textContent = '材料を記録する';
+  document.getElementById('entry-editing-id').value = '';
+  document.getElementById('entry-name').value = '';
+  document.getElementById('entry-amount').value = '';
+  document.getElementById('entry-unit').value = '';
+  document.getElementById('entry-note').value = '';
+  setEntryType('purchase');
+  renderSuggestions();
+  openModal('overlay-entry');
+}
+
+function setEntryType(type) {
+  entryType = type;
+  document.getElementById('type-purchase').classList.toggle('active', type==='purchase');
+  document.getElementById('type-consumption').classList.toggle('active', type==='consumption');
+}
+
+function renderSuggestions() {
+  const data = db();
+  const names = [...new Set(data.entries.map(e=>e.name))].slice(-8);
+  const el = document.getElementById('entry-suggestions');
+  const label = document.getElementById('sugg-label');
+  if (!names.length) { el.innerHTML = ''; label.style.display = 'none'; return; }
+  label.style.display = '';
+  el.innerHTML = names.map(n =>
+    `<button class="suggestion-chip" onclick="document.getElementById('entry-name').value='${esc(n)}'">${esc(n)}</button>`
+  ).join('');
+}
+
+function saveEntry() {
+  const name = document.getElementById('entry-name').value.trim();
+  const amount = parseFloat(document.getElementById('entry-amount').value);
+  const unit = document.getElementById('entry-unit').value.trim();
+  const note = document.getElementById('entry-note').value.trim();
+  const editId = document.getElementById('entry-editing-id').value;
+
+  if (!name) { alert('素材名を入力してください'); return; }
+  if (isNaN(amount) || amount <= 0) { alert('正しい数量を入力してください'); return; }
+
+  const data = db();
+  if (editId) {
+    const idx = data.entries.findIndex(e=>e.id===editId);
+    if (idx !== -1) data.entries[idx] = { ...data.entries[idx], name, amount, unit, note, type: entryType };
+  } else {
+    data.entries.push({ id: uid(), yearMonth: currentYM, type: entryType, name, amount, unit, note, createdAt: new Date().toISOString() });
+  }
+  saveDb(data);
+  closeModal('overlay-entry');
+  renderMaterials();
+}
+
+function editEntry(id) {
+  const data = db();
+  const e = data.entries.find(x=>x.id===id);
+  if (!e) return;
+  document.getElementById('entry-modal-title').textContent = '記録を編集する';
+  document.getElementById('entry-editing-id').value = id;
+  document.getElementById('entry-name').value = e.name;
+  document.getElementById('entry-amount').value = e.amount;
+  document.getElementById('entry-unit').value = e.unit;
+  document.getElementById('entry-note').value = e.note||'';
+  setEntryType(e.type);
+  renderSuggestions();
+  openModal('overlay-entry');
+}
+
+function deleteEntry(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  const data = db();
+  data.entries = data.entries.filter(e=>e.id!==id);
+  saveDb(data);
+  renderMaterials();
+}
+
+// ═══════════════════════════════════════
+// PRODUCT CRUD
+// ═══════════════════════════════════════
+function openAddProductModal() {
+  document.getElementById('product-modal-title').textContent = '作品を記録する';
+  document.getElementById('product-editing-id').value = '';
+  document.getElementById('product-title').value = '';
+  document.getElementById('product-note').value = '';
+  productTags = []; productPhoto = null;
+  renderTagChips();
+  document.getElementById('mat-used-list').innerHTML = '';
+  addMatUsedRow();
+  const area = document.getElementById('product-photo-area');
+  area.querySelector('img')?.remove();
+  area.classList.remove('has-photo');
+  openModal('overlay-product');
+}
+
+function renderProducts() {
+  const data = db();
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  let products = data.products.slice().reverse();
+  if (q) products = products.filter(p =>
+    p.title.toLowerCase().includes(q) || (p.tags||[]).some(t=>t.toLowerCase().includes(q))
+  );
+
+  const area = document.getElementById('product-area');
+  if (!products.length) {
+    area.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><div class="empty-text">${q?'該当する作品がありません':'まだ作品がありません\n+ から追加してみましょう'}</div></div>`;
+    return;
+  }
+
+  // Instagram-style 3-col grid for thumbnails, with info below each
+  area.innerHTML = `
+    <div class="product-grid" id="product-grid">
+      ${products.map(p => `
+        <div class="product-card" onclick="openProductDetail('${p.id}')">
+          ${p.photoData ? `<img class="product-thumb-img" src="${p.photoData}" alt="${esc(p.title)}">` : `<div class="product-thumb-placeholder">🧶</div>`}
+          <div class="product-card-overlay">
+            <div class="product-card-title">${esc(p.title)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function openProductDetail(id) {
+  const data = db();
+  const p = data.products.find(x=>x.id===id);
+  if (!p) return;
+
+  const matHtml = (p.materialsUsed||[]).filter(m=>m.name).map(m =>
+    `<span class="mat-chip">${esc(m.name)}${m.amount?` ${m.amount}${esc(m.unit||'')}`:''}</span>`
+  ).join('');
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-photo">
+      ${p.photoData ? `<img src="${p.photoData}" alt="${esc(p.title)}">` : '🧶'}
+    </div>
+    <div class="detail-title">${esc(p.title)}</div>
+    <div class="detail-date">${fmtDate(p.createdAt)}</div>
+    ${(p.tags||[]).length ? `
+    <div class="detail-row">
+      <div class="detail-label">Tags</div>
+      <div class="product-tags">${(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+    </div>` : ''}
+    ${matHtml ? `
+    <div class="detail-row">
+      <div class="detail-label">Materials</div>
+      <div style="margin-top:2px">${matHtml}</div>
+    </div>` : ''}
+    ${p.note ? `
+    <div class="detail-row">
+      <div class="detail-label">Note</div>
+      <div class="detail-value">${esc(p.note).replace(/\n/g,'<br>')}</div>
+    </div>` : ''}
+    <button class="btn-ghost" onclick="editProduct('${p.id}')">編集する</button>
+    <button class="btn-danger" onclick="deleteProduct('${p.id}')">削除する</button>
+  `;
+  openModal('overlay-detail');
+}
+
+function editProduct(id) {
+  closeModal('overlay-detail');
+  const data = db();
+  const p = data.products.find(x=>x.id===id);
+  if (!p) return;
+  document.getElementById('product-modal-title').textContent = '作品を編集する';
+  document.getElementById('product-editing-id').value = id;
+  document.getElementById('product-title').value = p.title;
+  document.getElementById('product-note').value = p.note||'';
+  productTags = [...(p.tags||[])];
+  productPhoto = p.photoData||null;
+  renderTagChips();
+  const area = document.getElementById('product-photo-area');
+  area.querySelector('img')?.remove();
+  if (p.photoData) {
+    const img = document.createElement('img');
+    img.src = p.photoData;
+    area.appendChild(img);
+    area.classList.add('has-photo');
+  } else {
+    area.classList.remove('has-photo');
+  }
+  const matList = document.getElementById('mat-used-list');
+  matList.innerHTML = '';
+  if ((p.materialsUsed||[]).length) p.materialsUsed.forEach(m => addMatUsedRow(m.name, m.amount, m.unit));
+  else addMatUsedRow();
+  openModal('overlay-product');
+}
+
+function saveProduct() {
+  const title = document.getElementById('product-title').value.trim();
+  const note = document.getElementById('product-note').value.trim();
+  const editId = document.getElementById('product-editing-id').value;
+  if (!title) { alert('タイトルを入力してください'); return; }
+
+  const materialsUsed = [];
+  document.querySelectorAll('.mat-used-row').forEach(row => {
+    const name = row.querySelector('.mat-name')?.value.trim();
+    const amount = row.querySelector('.mat-amount')?.value.trim();
+    const unit = row.querySelector('.mat-unit')?.value.trim();
+    if (name) materialsUsed.push({ name, amount, unit });
+  });
+
+  const data = db();
+  if (editId) {
+    const idx = data.products.findIndex(p=>p.id===editId);
+    if (idx !== -1) data.products[idx] = { ...data.products[idx], title, photoData: productPhoto, tags: productTags, materialsUsed, note };
+  } else {
+    data.products.push({ id: uid(), title, photoData: productPhoto, tags: productTags, materialsUsed, note, createdAt: new Date().toISOString() });
+  }
+  saveDb(data);
+  closeModal('overlay-product');
+  renderProducts();
+}
+
+function deleteProduct(id) {
+  if (!confirm('この作品を削除しますか？')) return;
+  const data = db();
+  data.products = data.products.filter(p=>p.id!==id);
+  saveDb(data);
+  closeModal('overlay-detail');
+  renderProducts();
+}
+
+// ═══════════════════════════════════════
+// TAGS
+// ═══════════════════════════════════════
+function renderTagChips() {
+  const wrap = document.getElementById('tags-wrap');
+  const field = document.getElementById('tag-field');
+  wrap.innerHTML = '';
+  productTags.forEach((t, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.innerHTML = `${esc(t)}<span class="tag-chip-x" onclick="removeTag(${i})">×</span>`;
+    wrap.appendChild(chip);
+  });
+  wrap.appendChild(field);
+  field.value = '';
+}
+
+function removeTag(i) { productTags.splice(i,1); renderTagChips(); }
+
+function handleTagKey(e) {
+  if ((e.key==='Enter'||e.key===' ') && e.target.value.trim()) {
+    e.preventDefault(); addTag(e.target.value.trim());
+  }
+  if (e.key==='Backspace' && !e.target.value && productTags.length) {
+    productTags.pop(); renderTagChips();
+  }
+}
+
+function handleTagInput(e) {
+  if (e.target.value.includes(' ') || e.target.value.includes('　')) {
+    const v = e.target.value.replace(/[\s　]/g,'').trim();
+    if (v) addTag(v); else e.target.value = '';
+  }
+}
+
+function addTag(t) {
+  if (!productTags.includes(t)) productTags.push(t);
+  renderTagChips();
+}
+
+// ═══════════════════════════════════════
+// MATERIALS USED ROWS
+// ═══════════════════════════════════════
+function addMatUsedRow(name='', amount='', unit='') {
+  const list = document.getElementById('mat-used-list');
+  const row = document.createElement('div');
+  row.className = 'mat-used-row';
+  row.innerHTML = `
+    <input class="form-input mat-name" type="text" placeholder="素材名" value="${esc(name)}">
+    <input class="form-input sm mat-amount" type="number" min="0" step="any" placeholder="量" value="${esc(String(amount))}">
+    <input class="form-input sm mat-unit" type="text" placeholder="単位" value="${esc(unit)}">
+    <button class="btn-rm" onclick="this.parentElement.remove()">−</button>
+  `;
+  list.appendChild(row);
+}
+
+// ═══════════════════════════════════════
+// PHOTO
+// ═══════════════════════════════════════
+async function handlePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const dataUrl = await resizeImage(file, 900);
+  productPhoto = dataUrl;
+  const area = document.getElementById('product-photo-area');
+  let img = area.querySelector('img');
+  if (!img) { img = document.createElement('img'); area.appendChild(img); }
+  img.src = dataUrl;
+  area.classList.add('has-photo');
+  e.target.value = '';
+}
+
+function resizeImage(file, max) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width: w, height: h } = img;
+      if (w > h) { if (w > max) { h = h*max/w; w = max; } }
+      else { if (h > max) { w = w*max/h; h = max; } }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = url;
+  });
+}
+
+// ═══════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow = ''; }
+function closeOnOverlay(e, id) { if (e.target.id===id) closeModal(id); }
+
+// ═══════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════
+function esc(s) {
+  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+renderMaterials();
+renderProducts();
+</script>
+</body>
+</html>
